@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifdef USE_POLYBOT_CONFIG
+    #include "custom/polybot_config.h"
+#endif
+
 #ifdef USE_BEEBO_CONFIG
     #include "custom/beebo_config.h"
 #endif
