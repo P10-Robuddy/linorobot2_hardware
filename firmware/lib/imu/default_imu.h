@@ -26,6 +26,9 @@
 #include "MPU6050.h"
 #include "MPU9150.h"
 #include "MPU9250.h"
+//#include "Adafruit_BNO055.h"
+//#include "Adafruit_Sensor.h"
+//#include "utility/imumaths.h"
 
 class GY85IMU: public IMUInterface 
 {
@@ -282,6 +285,81 @@ class MPU9250IMU: public IMUInterface
             return gyro_;
         }
 };
+
+/*class BNO055IMU: public IMUInterface
+{
+    private:
+        const float accel_scale_ = 1 / 16384.0;
+        const float gyro_scale_ = 1 / 131.0;
+
+        #define G_TO_ACCEL 9.81
+        #define MGAUSS_TO_UTESLA 0.1
+        #define UTESLA_TO_TESLA 0.000001
+
+        #define ACCEL_SCALE 1000 // LSB/g           1 mg = 1 LSB => 1g = 1000 LSB
+        #define GYRO_SCALE 0.0625 // LSB/(deg/s)    1 Dps = 16 LSB (Datasheet 3.6.4.3)
+        #define MAG_SCALE 0.0625 // uT/LSB          1 uT = 16 LSB
+
+        Adafruit_BNO055 bno;
+        //BNO055 accelerometer_;
+        //BNO055 gyroscope_;
+
+        geometry_msgs__msg__Vector3 accel_;
+        geometry_msgs__msg__Vector3 gyro_;
+
+    public:
+        BNO055IMU()
+        {
+        }
+
+        bool startSensor() override
+        {
+            Wire.begin();
+            bool ret;
+            bno = Adafruit_BNO055(55, 0x28);
+
+            ret = bno.begin();
+            if(!ret)
+                return false;
+
+            return true;
+        }
+
+        geometry_msgs__msg__Vector3 readAccelerometer() override
+        {
+            sensors_event_t accelerometer;
+            bno.getEvent(&accelerometer, Adafruit_BNO055::VECTOR_LINEARACCEL);
+            //bno.getEvent(&accelerometer, Adafruit_BNO055::VECTOR_ACCELEROMETER);
+
+            //accel.x = ((&accelerometer)->acceleration.x) * (double) ACCEL_SCALE * G_TO_ACCEL;
+            //accel.x = ((&accelerometer)->acceleration.x) * (double) ACCEL_SCALE;
+            //accel.y = ((&accelerometer)->acceleration.y) * (double) ACCEL_SCALE;
+            //accel.z = ((&accelerometer)->acceleration.z) * (double) ACCEL_SCALE;
+            accel_.x = ((&accelerometer)->acceleration.x);
+            accel_.y = ((&accelerometer)->acceleration.y);
+            accel_.z = ((&accelerometer)->acceleration.z);
+
+            return accel_;
+        }
+
+        geometry_msgs__msg__Vector3 readGyroscope() override
+        {
+            sensors_event_t angularVelocity;
+            bno.getEvent(&angularVelocity, Adafruit_BNO055::VECTOR_GYROSCOPE);
+
+            //gyroscope.x = ((&angularVelocity)->gyro.x) * (double) GYRO_SCALE;
+            //gyroscope.y = ((&angularVelocity)->gyro.y) * (double) GYRO_SCALE;
+            //gyroscope.z = ((&angularVelocity)->gyro.z) * (double) GYRO_SCALE;
+
+            gyro_.x = ((&angularVelocity)->gyro.x);
+            gyro_.y = ((&angularVelocity)->gyro.y);
+            gyro_.z = ((&angularVelocity)->gyro.z);
+
+            return gyro_;
+        }
+
+
+};*/
 
 class FakeIMU: public IMUInterface 
 {
