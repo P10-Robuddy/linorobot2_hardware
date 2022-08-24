@@ -25,6 +25,7 @@
 #include <geometry_msgs/msg/twist.h>
 #include <geometry_msgs/msg/vector3.h>
 
+#include "time.h"
 #include "config.h"
 #include "motor.h"
 #include "kinematics.h"
@@ -34,6 +35,27 @@
 #define ENCODER_USE_INTERRUPTS
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include "encoder.h"
+
+
+void flashLED(int n_times)
+{
+    for(int i=0; i<n_times; i++)
+    {
+        digitalWrite(LED_PIN, HIGH);
+        delay(150);
+        digitalWrite(LED_PIN, LOW);
+        delay(150);
+    }
+    delay(1000);
+}
+
+void rclErrorLoop() 
+{
+    while(true)
+    {
+        flashLED(2);
+    }
+}
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){rclErrorLoop();}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
@@ -95,62 +117,19 @@ Kinematics kinematics(
 );
 
 Odometry odometry;
+//Adafruit_BNO055 bno;
 IMU imu;
 
-void setup() 
+struct timespec getTime()
 {
-    pinMode(LED_PIN, OUTPUT);
+    struct timespec tp = {0};
+    // add time difference between uC time and ROS time to
+    // synchronize time with ROS
+    unsigned long long now = millis() + time_offset;
+    tp.tv_sec = now / 1000;
+    tp.tv_nsec = (now % 1000) * 1000000;
 
-    bool imu_ok = imu.init();
-    if(!imu_ok)
-    {
-        while(1)
-        {
-            flashLED(3);
-        }
-    }
-    
-    Serial.begin(115200);
-    set_microros_serial_transports(Serial);
-}
-
-void loop() {
-    switch (state) 
-    {
-        case WAITING_AGENT:
-            EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE : WAITING_AGENT;);
-            break;
-        case AGENT_AVAILABLE:
-            state = (true == createEntities()) ? AGENT_CONNECTED : WAITING_AGENT;
-            if (state == WAITING_AGENT) 
-            {
-                destroyEntities();
-            }
-            break;
-        case AGENT_CONNECTED:
-            EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
-            if (state == AGENT_CONNECTED) 
-            {
-                rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
-            }
-            break;
-        case AGENT_DISCONNECTED:
-            destroyEntities();
-            state = WAITING_AGENT;
-            break;
-        default:
-            break;
-    }
-}
-
-void controlCallback(rcl_timer_t * timer, int64_t last_call_time) 
-{
-    RCLC_UNUSED(last_call_time);
-    if (timer != NULL) 
-    {
-       moveBase();
-       publishData();
-    }
+    return tp;
 }
 
 void twistCallback(const void * msgin) 
@@ -160,88 +139,14 @@ void twistCallback(const void * msgin)
     prev_cmd_time = millis();
 }
 
-bool createEntities()
+void syncTime()
 {
-    allocator = rcl_get_default_allocator();
-    //create init_options
-    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-    // create node
-    RCCHECK(rclc_node_init_default(&node, "linorobot_base_node", "", &support));
-    // create odometry publisher
-    RCCHECK(rclc_publisher_init_default( 
-        &odom_publisher, 
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
-        "odom/unfiltered"
-    ));
-    // create IMU publisher
-    RCCHECK(rclc_publisher_init_default( 
-        &imu_publisher, 
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
-        "imu/data"
-    ));
-    // create twist command subscriber
-    RCCHECK(rclc_subscription_init_default( 
-        &twist_subscriber, 
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-        "cmd_vel"
-    ));
-    // create timer for actuating the motors at 50 Hz (1000/20)
-    const unsigned int control_timeout = 20;
-    RCCHECK(rclc_timer_init_default( 
-        &control_timer, 
-        &support,
-        RCL_MS_TO_NS(control_timeout),
-        controlCallback
-    ));
-    executor = rclc_executor_get_zero_initialized_executor();
-    RCCHECK(rclc_executor_init(&executor, &support.context, 2, & allocator));
-    RCCHECK(rclc_executor_add_subscription(
-        &executor, 
-        &twist_subscriber, 
-        &twist_msg, 
-        &twistCallback, 
-        ON_NEW_DATA
-    ));
-    RCCHECK(rclc_executor_add_timer(&executor, &control_timer));
-
-    // synchronize time with the agent
-    syncTime();
-    digitalWrite(LED_PIN, HIGH);
-
-    return true;
-}
-
-bool destroyEntities()
-{
-    rmw_context_t * rmw_context = rcl_context_get_rmw_context(&support.context);
-    (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
-
-    rcl_publisher_fini(&odom_publisher, &node);
-    rcl_publisher_fini(&imu_publisher, &node);
-    rcl_subscription_fini(&twist_subscriber, &node);
-    rcl_node_fini(&node);
-    rcl_timer_fini(&control_timer);
-    rclc_executor_fini(&executor);
-    rclc_support_fini(&support);
-
-    digitalWrite(LED_PIN, HIGH);
-    
-    return true;
-}
-
-void fullStop()
-{
-    twist_msg.linear.x = 0.0;
-    twist_msg.linear.y = 0.0;
-    twist_msg.angular.z = 0.0;
-
-    motor1_controller.brake();
-    motor2_controller.brake();
-    motor3_controller.brake();
-    motor4_controller.brake();
+    // get the current time from the agent
+    unsigned long now = millis();
+    RCCHECK(rmw_uros_sync_session(10));
+    unsigned long long ros_time_ms = rmw_uros_epoch_millis(); 
+    // now we can find the difference between ROS time and uC time
+    time_offset = ros_time_ms - now;
 }
 
 void moveBase()
@@ -261,7 +166,6 @@ void moveBase()
         twist_msg.linear.y, 
         twist_msg.angular.z
     );
-
     // get the current speed of each motor
     float current_rpm1 = motor1_encoder.getRPM();
     float current_rpm2 = motor2_encoder.getRPM();
@@ -310,44 +214,144 @@ void publishData()
     RCSOFTCHECK(rcl_publish(&odom_publisher, &odom_msg, NULL));
 }
 
-void syncTime()
+void controlCallback(rcl_timer_t * timer, int64_t last_call_time) 
 {
-    // get the current time from the agent
-    unsigned long now = millis();
-    RCCHECK(rmw_uros_sync_session(10));
-    unsigned long long ros_time_ms = rmw_uros_epoch_millis(); 
-    // now we can find the difference between ROS time and uC time
-    time_offset = ros_time_ms - now;
-}
-
-struct timespec getTime()
-{
-    struct timespec tp = {0};
-    // add time difference between uC time and ROS time to
-    // synchronize time with ROS
-    unsigned long long now = millis() + time_offset;
-    tp.tv_sec = now / 1000;
-    tp.tv_nsec = (now % 1000) * 1000000;
-
-    return tp;
-}
-
-void rclErrorLoop() 
-{
-    while(true)
+    RCLC_UNUSED(last_call_time);
+    if (timer != NULL) 
     {
-        flashLED(2);
+       moveBase();
+       publishData();
     }
 }
 
-void flashLED(int n_times)
+bool createEntities()
 {
-    for(int i=0; i<n_times; i++)
+    allocator = rcl_get_default_allocator();
+    //create init_options
+    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+    // create node
+    RCCHECK(rclc_node_init_default(&node, "linorobot_base_node", "", &support));
+    // create odometry publisher
+    RCCHECK(rclc_publisher_init_default( 
+        &odom_publisher, 
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
+        "odom/unfiltered"
+    ));
+    // create IMU publisher
+    RCCHECK(rclc_publisher_init_default( 
+        &imu_publisher, 
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
+        "imu/data"
+    ));
+    // create twist command subscriber
+    RCCHECK(rclc_subscription_init_default( 
+        &twist_subscriber, 
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+        "cmd_vel"
+    ));
+    // create timer for actuating the motors at 50 Hz (1000/20)
+    const unsigned int control_timeout = 20;
+    RCCHECK(rclc_timer_init_default( 
+        &control_timer, 
+        &support,
+        RCL_MS_TO_NS(control_timeout),
+        controlCallback
+    ));
+    executor = rclc_executor_get_zero_initialized_executor();
+    RCCHECK(rclc_executor_init(&executor, &support.context, 10, & allocator));
+    RCCHECK(rclc_executor_add_subscription(
+        &executor, 
+        &twist_subscriber, 
+        &twist_msg, 
+        &twistCallback, 
+        ON_NEW_DATA
+    ));
+    RCCHECK(rclc_executor_add_timer(&executor, &control_timer));
+
+    // synchronize time with the agent
+    syncTime();
+    digitalWrite(LED_PIN, HIGH);
+
+    return true;
+}
+
+bool destroyEntities()
+{
+    rmw_context_t * rmw_context = rcl_context_get_rmw_context(&support.context);
+    (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
+
+    rcl_publisher_fini(&odom_publisher, &node);
+    rcl_publisher_fini(&imu_publisher, &node);
+    rcl_subscription_fini(&twist_subscriber, &node);
+    rcl_node_fini(&node);
+    rcl_timer_fini(&control_timer);
+    rclc_executor_fini(&executor);
+    rclc_support_fini(&support);
+
+    digitalWrite(LED_PIN, HIGH);
+    
+    return true;
+}
+
+void fullStop()
+{
+    twist_msg.linear.x = 0.0;
+    twist_msg.linear.y = 0.0;
+    twist_msg.angular.z = 0.0;
+
+    motor1_controller.brake();
+    motor2_controller.brake();
+    motor3_controller.brake();
+    motor4_controller.brake();
+}
+
+void setup() 
+{
+    pinMode(LED_PIN, OUTPUT);
+
+    bool imu_ok = imu.init();
+    if(!imu_ok)
     {
-        digitalWrite(LED_PIN, HIGH);
-        delay(150);
-        digitalWrite(LED_PIN, LOW);
-        delay(150);
+        while(1)
+        {
+            flashLED(3);
+        }
     }
-    delay(1000);
+    
+    Serial.begin(115200);
+    set_microros_serial_transports(Serial);
+    createEntities();
+}
+
+void loop() {
+    rclc_executor_spin_some(&executor, RCL_MS_TO_NS(20));
+    /*switch (state) 
+    {
+        case WAITING_AGENT:
+            EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE : WAITING_AGENT;);
+            break;
+        case AGENT_AVAILABLE:
+            state = (true == createEntities()) ? AGENT_CONNECTED : WAITING_AGENT;
+            if (state == WAITING_AGENT) 
+            {
+                destroyEntities();
+            }
+            break;
+        case AGENT_CONNECTED:
+            EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
+            if (state == AGENT_CONNECTED) 
+            {
+                rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+            }
+            break;
+        case AGENT_DISCONNECTED:
+            destroyEntities();
+            state = WAITING_AGENT;
+            break;
+        default:
+            break;
+    }*/
 }
