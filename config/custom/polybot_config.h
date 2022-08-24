@@ -15,13 +15,15 @@
 // #define USE_ESC_MOTOR_DRIVER            // Motor ESC for brushless motors
 
 //uncomment the IMU you're using
-#define USE_GY85_IMU
+#define USE_FAKE_IMU
+//#define USE_BNO055
+//#define USE_GY85_IMU
 // #define USE_MPU6050_IMU
 // #define USE_MPU9150_IMU
 // #define USE_MPU9250_IMU
 
 #define K_P 0.6                             // P constant
-#define K_I 0.3                             // I constant
+#define K_I 0.5                             // I constant
 #define K_D 0.5                             // D constant
 
 /*
