@@ -32,7 +32,7 @@
     #include "custom/dev_config.h"
 #endif
 
-#if !defined (USE_BEEBO_CONFIG) && !defined (USE_DEV_CONFIG) && !defined (USE_SQUARE_CONFIG) && !defined (USE_BEEBO_M_CONFIG)
+#if !defined (USE_BEEBO_CONFIG) && !defined (USE_DEV_CONFIG) && !defined (USE_SQUARE_CONFIG) && !defined (USE_BEEBO_M_CONFIG) && !defined (USE_POLYBOT_CONFIG)
     #include "lino_base_config.h"
 #endif
 
