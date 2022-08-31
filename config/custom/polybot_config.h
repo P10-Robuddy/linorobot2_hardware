@@ -15,8 +15,8 @@
 // #define USE_ESC_MOTOR_DRIVER            // Motor ESC for brushless motors
 
 //uncomment the IMU you're using
-#define USE_FAKE_IMU
-//#define USE_BNO055
+//#define USE_MPU9250_IMU
+#define USE_BNO055_IMU
 //#define USE_GY85_IMU
 // #define USE_MPU6050_IMU
 // #define USE_MPU9150_IMU

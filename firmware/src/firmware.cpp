@@ -118,7 +118,7 @@ Kinematics kinematics(
 
 Odometry odometry;
 //Adafruit_BNO055 bno;
-IMU imu;
+IMU bno;
 
 struct timespec getTime()
 {
@@ -200,7 +200,7 @@ void moveBase()
 void publishData()
 {
     odom_msg = odometry.getData();
-    imu_msg = imu.getData();
+    imu_msg = bno.getData();
 
     struct timespec time_stamp = getTime();
 
@@ -312,7 +312,7 @@ void setup()
 {
     pinMode(LED_PIN, OUTPUT);
 
-    bool imu_ok = imu.init();
+    bool imu_ok = bno.init();
     if(!imu_ok)
     {
         while(1)

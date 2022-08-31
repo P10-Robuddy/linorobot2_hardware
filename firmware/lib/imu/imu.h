@@ -19,7 +19,7 @@
 #include "default_imu.h"
 
 // now you can create a config constant that you can use in lino_base_config.h
-#ifdef USE_BNO055
+#ifdef USE_BNO055_IMU
     #define IMU BNO055IMU
 #endif
 
@@ -45,4 +45,3 @@
 #endif
 
 #endif
-

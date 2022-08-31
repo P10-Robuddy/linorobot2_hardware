@@ -26,7 +26,7 @@
 #include "MPU6050.h"
 #include "MPU9150.h"
 #include "MPU9250.h"
-//#include "Adafruit_BNO055.h"
+#include "Adafruit_BNO055.h"
 //#include "Adafruit_Sensor.h"
 //#include "utility/imumaths.h"
 
@@ -286,7 +286,7 @@ class MPU9250IMU: public IMUInterface
         }
 };
 
-/*class BNO055IMU: public IMUInterface
+class BNO055IMU: public IMUInterface
 {
     private:
         const float accel_scale_ = 1 / 16384.0;
@@ -359,7 +359,7 @@ class MPU9250IMU: public IMUInterface
         }
 
 
-};*/
+};
 
 class FakeIMU: public IMUInterface 
 {
