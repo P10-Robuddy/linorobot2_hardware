@@ -55,6 +55,7 @@ void rclErrorLoop()
     {
         flashLED(2);
     }
+    //flashLED(2);
 }
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){rclErrorLoop();}}
@@ -269,12 +270,12 @@ bool createEntities()
         &twistCallback, 
         ON_NEW_DATA
     ));
+    flashLED(5);
     RCCHECK(rclc_executor_add_timer(&executor, &control_timer));
-
+    flashLED(5);
     // synchronize time with the agent
     syncTime();
-    digitalWrite(LED_PIN, HIGH);
-
+    //digitalWrite(LED_PIN, HIGH);
     return true;
 }
 
@@ -324,17 +325,19 @@ void setup()
     Serial.begin(115200);
     set_microros_serial_transports(Serial);
     createEntities();
+    flashLED(5);
+    state = AGENT_CONNECTED;
 }
 
 void loop() {
-    rclc_executor_spin_some(&executor, RCL_MS_TO_NS(20));
-    /*switch (state) 
+    //rclc_executor_spin_some(&executor, RCL_MS_TO_NS(20));
+    switch (state) 
     {
         case WAITING_AGENT:
             EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE : WAITING_AGENT;);
             break;
         case AGENT_AVAILABLE:
-            state = (true == createEntities()) ? AGENT_CONNECTED : WAITING_AGENT;
+            state = (true == createEntities() ? AGENT_CONNECTED : WAITING_AGENT);
             if (state == WAITING_AGENT) 
             {
                 destroyEntities();
@@ -344,7 +347,7 @@ void loop() {
             EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
             if (state == AGENT_CONNECTED) 
             {
-                rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+                rclc_executor_spin_some(&executor, RCL_MS_TO_NS(20));
             }
             break;
         case AGENT_DISCONNECTED:
@@ -353,5 +356,5 @@ void loop() {
             break;
         default:
             break;
-    }*/
+    }
 }
