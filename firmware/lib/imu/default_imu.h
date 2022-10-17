@@ -297,8 +297,8 @@ class BNO055IMU: public IMUInterface
         #define UTESLA_TO_TESLA 0.000001
 
         #define ACCEL_SCALE 1000 // LSB/g           1 mg = 1 LSB => 1g = 1000 LSB
-        #define GYRO_SCALE 0.0625 // LSB/(deg/s)    1 Dps = 16 LSB (Datasheet 3.6.4.3)
-        #define MAG_SCALE 0.0625 // uT/LSB          1 uT = 16 LSB
+        #define GYRO_SCALE 0.017453 // LSB/(deg/s)    1 Dps = 16 LSB (Datasheet 3.6.4.3) OLD = 0.0625
+        #define MAG_SCALE 0.0625 // uT/LSB          1 uT = 16 LSB OLD = 0.0625
 
         Adafruit_BNO055 bno;
         //BNO055 accelerometer_;
@@ -351,9 +351,9 @@ class BNO055IMU: public IMUInterface
             //gyroscope.y = ((&angularVelocity)->gyro.y) * (double) GYRO_SCALE;
             //gyroscope.z = ((&angularVelocity)->gyro.z) * (double) GYRO_SCALE;
 
-            gyro_.x = ((&angularVelocity)->gyro.x);
-            gyro_.y = ((&angularVelocity)->gyro.y);
-            gyro_.z = ((&angularVelocity)->gyro.z);
+            gyro_.x = ((&angularVelocity)->gyro.x)* (double) GYRO_SCALE;
+            gyro_.y = ((&angularVelocity)->gyro.y)* (double) GYRO_SCALE;
+            gyro_.z = -1*(((&angularVelocity)->gyro.z)* (double) GYRO_SCALE);
 
             return gyro_;
         }
