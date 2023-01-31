@@ -24,9 +24,9 @@
 // #define USE_MPU9150_IMU
 // #define USE_MPU9250_IMU
 
-#define K_P 0.6                             // P constant
+#define K_P 2.0                             // P constant
 #define K_I 0.5                             // I constant
-#define K_D 0.5                             // D constant
+#define K_D 1.0                             // D constant
 
 /*
 ROBOT ORIENTATION
