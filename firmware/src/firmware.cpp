@@ -51,10 +51,11 @@ void flashLED(int n_times)
 
 void rclErrorLoop() 
 {
-    while(true)
+    for(int i = 0; i < 5; i++)
     {
         flashLED(2);
     }
+    SCB_AIRCR = 0x05FA0004; //restart register
     //flashLED(2);
 }
 
