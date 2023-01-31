@@ -154,7 +154,7 @@ void syncTime()
 void moveBase()
 {
     // brake if there's no command received, or when it's only the first command sent
-    if(((millis() - prev_cmd_time) >= 200)) 
+    if(((millis() - prev_cmd_time) >= 500)) 
     {
         twist_msg.linear.x = 0.0;
         twist_msg.linear.y = 0.0;
