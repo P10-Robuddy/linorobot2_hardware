@@ -1,6 +1,8 @@
 #ifndef POLYBOT_CONFIG_H
 #define POLYBOT_CONFIG_H
 
+#define NAMESPACE "polybot07"
+
 #define LED_PIN 13 //used for debugging status
 
 //uncomment the base you're building

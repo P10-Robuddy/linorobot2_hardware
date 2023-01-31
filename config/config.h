@@ -36,3 +36,6 @@
     #include "lino_base_config.h"
 #endif
 
+#ifndef NAMESPACE
+    #define NAMESPACE ""
+#endif

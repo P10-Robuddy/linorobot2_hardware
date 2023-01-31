@@ -231,7 +231,7 @@ bool createEntities()
     //create init_options
     RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
     // create node
-    RCCHECK(rclc_node_init_default(&node, "linorobot_base_node", "", &support));
+    RCCHECK(rclc_node_init_default(&node, "linorobot_base_node", NAMESPACE, &support));
     // create odometry publisher
     RCCHECK(rclc_publisher_init_default( 
         &odom_publisher, 
@@ -325,6 +325,8 @@ void setup()
     Serial.begin(115200);
     set_microros_serial_transports(Serial);
     createEntities();
+    bno.add_namespace(NAMESPACE);
+    odometry.add_namespace(NAMESPACE);
     flashLED(5);
     state = AGENT_CONNECTED;
 }
