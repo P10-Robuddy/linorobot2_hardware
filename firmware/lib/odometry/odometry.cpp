@@ -27,8 +27,8 @@ void Odometry::add_namespace(const char* ns)
 {
     odom_msg_.header.frame_id = micro_ros_string_utilities_set(odom_msg_.header.frame_id, ns);
     odom_msg_.child_frame_id = micro_ros_string_utilities_set(odom_msg_.child_frame_id, ns);
-    odom_msg_.header.frame_id = micro_ros_string_utilities_append(odom_msg_.header.frame_id, "/odom");
-    odom_msg_.child_frame_id = micro_ros_string_utilities_append(odom_msg_.child_frame_id, "/base_footprint");
+    odom_msg_.header.frame_id = micro_ros_string_utilities_append(odom_msg_.header.frame_id, "_odom");
+    odom_msg_.child_frame_id = micro_ros_string_utilities_append(odom_msg_.child_frame_id, "_base_footprint");
 }
 
 

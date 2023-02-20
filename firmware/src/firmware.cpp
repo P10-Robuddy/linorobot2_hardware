@@ -36,6 +36,9 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include "encoder.h"
 
+#ifndef ROS_DOMAIN_ID
+#define ROS_DOMAIN_ID 0
+#endif
 
 void flashLED(int n_times)
 {
@@ -230,7 +233,14 @@ bool createEntities()
 {
     allocator = rcl_get_default_allocator();
     //create init_options
-    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+    // RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+
+    // Initialize and modify options
+    rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
+    RCCHECK(rcl_init_options_init(&init_options, allocator));
+    RCCHECK(rcl_init_options_set_domain_id(&init_options, ROS_DOMAIN_ID));
+    RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
+
     // create node
     RCCHECK(rclc_node_init_default(&node, "linorobot_base_node", NAMESPACE, &support));
     // create odometry publisher
@@ -326,8 +336,8 @@ void setup()
     Serial.begin(115200);
     set_microros_serial_transports(Serial);
     createEntities();
-    bno.add_namespace(NAMESPACE);
-    odometry.add_namespace(NAMESPACE);
+    // bno.add_namespace(NAMESPACE);
+    // odometry.add_namespace(NAMESPACE);
     flashLED(5);
     state = AGENT_CONNECTED;
 }

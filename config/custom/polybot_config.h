@@ -1,7 +1,8 @@
 #ifndef POLYBOT_CONFIG_H
 #define POLYBOT_CONFIG_H
 
-#define NAMESPACE "polybot07"
+#define NAMESPACE "polybot04"
+#define ROS_DOMAIN_ID 4
 
 #define LED_PIN 13 //used for debugging status
 
