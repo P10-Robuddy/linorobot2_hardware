@@ -1,8 +1,8 @@
 #ifndef POLYBOT_CONFIG_H
 #define POLYBOT_CONFIG_H
 
-#define NAMESPACE "polybot04"
-#define ROS_DOMAIN_ID 4
+#define ROS_NAMESPACE "polybot05"
+#define ROS_DOMAIN_ID 0
 
 #define LED_PIN 13 //used for debugging status
 
@@ -25,7 +25,7 @@
 // #define USE_MPU9150_IMU
 // #define USE_MPU9250_IMU
 
-#define K_P 2.0                             // P constant
+#define K_P 4.0                             // P constant
 #define K_I 0.5                             // I constant
 #define K_D 1.0                             // D constant
 

@@ -36,10 +36,6 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include "encoder.h"
 
-#ifndef ROS_DOMAIN_ID
-#define ROS_DOMAIN_ID 0
-#endif
-
 void flashLED(int n_times)
 {
     for(int i=0; i<n_times; i++)
@@ -52,17 +48,13 @@ void flashLED(int n_times)
     delay(1000);
 }
 
-void rclErrorLoop() 
+void rclErrorRestart() 
 {
-    for(int i = 0; i < 5; i++)
-    {
-        flashLED(2);
-    }
+    flashLED(2);
     SCB_AIRCR = 0x05FA0004; //restart register
-    //flashLED(2);
 }
 
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){rclErrorLoop();}}
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){rclErrorRestart();}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
 #define EXECUTE_EVERY_N_MS(MS, X)  do { \
   static volatile int64_t init = -1; \
@@ -232,8 +224,6 @@ void controlCallback(rcl_timer_t * timer, int64_t last_call_time)
 bool createEntities()
 {
     allocator = rcl_get_default_allocator();
-    //create init_options
-    // RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
     // Initialize and modify options
     rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
@@ -242,7 +232,7 @@ bool createEntities()
     RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
 
     // create node
-    RCCHECK(rclc_node_init_default(&node, "linorobot_base_node", NAMESPACE, &support));
+    RCCHECK(rclc_node_init_default(&node, "linorobot_base_node", ROS_NAMESPACE, &support));
     // create odometry publisher
     RCCHECK(rclc_publisher_init_default( 
         &odom_publisher, 
@@ -281,12 +271,11 @@ bool createEntities()
         &twistCallback, 
         ON_NEW_DATA
     ));
-    flashLED(5);
+
     RCCHECK(rclc_executor_add_timer(&executor, &control_timer));
-    flashLED(5);
+    
     // synchronize time with the agent
     syncTime();
-    //digitalWrite(LED_PIN, HIGH);
     return true;
 }
 
@@ -304,20 +293,14 @@ bool destroyEntities()
     rclc_support_fini(&support);
 
     digitalWrite(LED_PIN, HIGH);
-    
-    return true;
-}
 
-void fullStop()
-{
-    twist_msg.linear.x = 0.0;
-    twist_msg.linear.y = 0.0;
-    twist_msg.angular.z = 0.0;
-
+    // ensure motors are in a stopped state
     motor1_controller.brake();
     motor2_controller.brake();
     motor3_controller.brake();
     motor4_controller.brake();
+    
+    return true;
 }
 
 void setup() 
@@ -336,9 +319,7 @@ void setup()
     Serial.begin(115200);
     set_microros_serial_transports(Serial);
     createEntities();
-    // bno.add_namespace(NAMESPACE);
-    // odometry.add_namespace(NAMESPACE);
-    flashLED(5);
+
     state = AGENT_CONNECTED;
 }
 

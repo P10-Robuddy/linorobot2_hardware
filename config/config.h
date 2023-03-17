@@ -36,6 +36,10 @@
     #include "lino_base_config.h"
 #endif
 
-#ifndef NAMESPACE
-    #define NAMESPACE ""
+#ifndef ROS_NAMESPACE
+    #define ROS_NAMESPACE ""
+#endif
+
+#ifndef ROS_DOMAIN_ID
+    #define ROS_DOMAIN_ID 0
 #endif
