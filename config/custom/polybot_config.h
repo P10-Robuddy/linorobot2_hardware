@@ -25,10 +25,10 @@
 // #define USE_MPU9150_IMU
 // #define USE_MPU9250_IMU
 
-#define K_P 4.0                             // P constant
-#define K_I 0.5                             // I constant
-#define K_D 1.0                             // D constant
-
+#define K_P 10.0                             // P constant
+#define K_I 1.0                             // I constant
+#define K_D 0.0                             // D constant
+#define VELOCITY_RAMP 5.0 // m/s^2 and rad/s^2
 /*
 ROBOT ORIENTATION
          FRONT

@@ -51,9 +51,13 @@ nav_msgs__msg__Odometry odom_msg;
 sensor_msgs__msg__Imu imu_msg;
 geometry_msgs__msg__Twist twist_msg;
 
-unsigned long long time_offset = 0;
+float target_lin_vel;
+float target_ang_vel;
+
 unsigned long prev_cmd_time = 0;
 unsigned long prev_odom_update = 0;
+
+#define CONTROL_INTERVAL 20  // ms
 
 Encoder motor1_encoder(MOTOR1_ENCODER_A, MOTOR1_ENCODER_B, COUNTS_PER_REV1, MOTOR1_ENCODER_INV);
 Encoder motor2_encoder(MOTOR2_ENCODER_A, MOTOR2_ENCODER_B, COUNTS_PER_REV2, MOTOR2_ENCODER_INV);
@@ -83,18 +87,42 @@ Kinematics kinematics(
 Odometry odometry;
 IMU bno;
 
-unsigned long long next_run_time = 0;
+unsigned long long next_run_time;
 
 void fullStop()
 {
-    twist_msg.linear.x = 0.0;
-    twist_msg.linear.y = 0.0;
-    twist_msg.angular.z = 0.0;
+    target_lin_vel = 0.0;
+    target_ang_vel = 0.0;
 
     motor1_controller.brake();
     motor2_controller.brake();
     motor3_controller.brake();
     motor4_controller.brake();
+}
+
+void ramp_value(double& value, float target)
+{
+    double difference = target-value;
+    const double MS_TO_SEC =  0.001;
+    const double ramp = VELOCITY_RAMP*CONTROL_INTERVAL*MS_TO_SEC;
+    if (abs(difference) > ramp)
+    {
+        if(difference > 0)
+        {
+            difference = ramp;
+        }
+        else
+        {
+            difference = -ramp;
+        }
+    }
+    value += difference;
+}
+
+void rampInput()
+{
+    ramp_value(twist_msg.linear.x, target_lin_vel);
+    ramp_value(twist_msg.angular.z, target_ang_vel);
 }
 
 void moveBase()
@@ -105,10 +133,12 @@ void moveBase()
         fullStop();
         digitalWrite(LED_PIN, HIGH);
     }
+
+    rampInput();
     // get the required rpm for each motor based on required velocities, and base used
     Kinematics::rpm req_rpm = kinematics.getRPM(
         twist_msg.linear.x, 
-        twist_msg.linear.y, 
+        0.0, 
         twist_msg.angular.z
     );
     // get the current speed of each motor
@@ -142,42 +172,40 @@ void moveBase()
     );
 }
 
-#define CONTROL_INTERVAL 20  // ms
-
 struct robot_measurement_packet {
-  float imu_yaw_rate;
-  float wheel_lin_vel;
-  float wheel_angular_vel;
-  float odom_x_pos;
-  float odom_y_pos;
-  float odom_yaw;
-  float cmd_vel_x;
-  float cmd_vel_z;
+    float imu_yaw_rate;
+    float wheel_lin_vel;
+    float wheel_angular_vel;
+    float odom_x_pos;
+    float odom_y_pos;
+    float odom_yaw;
+    float cmd_vel_x;
+    float cmd_vel_z;
 };
 
 void send_packet(robot_measurement_packet* packet) {
-  // protocol:
-  // header, 3x floats of 4 bytes,2 CRC bytes, end of message
-  // [0xFF][float][float][float][CRC16][0xFE]
+    // protocol:
+    // header, x floats of 4 bytes,2 CRC bytes, end of message
+    // [0xFF][float]...[float][CRC16][0xFE]
 
-  size_t SERIAL_BUFFER_LENGTH = 36;
-  uint8_t buffer[SERIAL_BUFFER_LENGTH];
-  buffer[0] = 0xFF;  // start of msg
-  const int FLOAT_BYTES = 4;
-  memcpy(&buffer[0*FLOAT_BYTES + 1], &packet->imu_yaw_rate, 4);
-  memcpy(&buffer[1*FLOAT_BYTES + 1], &packet->wheel_lin_vel, 4);
-  memcpy(&buffer[2*FLOAT_BYTES + 1], &packet->wheel_angular_vel, 4);
-  memcpy(&buffer[3*FLOAT_BYTES + 1], &packet->odom_x_pos, 4);
-  memcpy(&buffer[4*FLOAT_BYTES + 1], &packet->odom_y_pos, 4);
-  memcpy(&buffer[5*FLOAT_BYTES + 1], &packet->odom_yaw, 4);
-  memcpy(&buffer[6*FLOAT_BYTES + 1], &packet->cmd_vel_x, 4);
-  memcpy(&buffer[7*FLOAT_BYTES + 1], &packet->cmd_vel_z, 4);
+    size_t SERIAL_BUFFER_LENGTH = 36;
+    uint8_t buffer[SERIAL_BUFFER_LENGTH];
+    buffer[0] = 0xFF;  // start of msg
+    const int FLOAT_BYTES = 4;
+    memcpy(&buffer[0*FLOAT_BYTES + 1], &packet->imu_yaw_rate, 4);
+    memcpy(&buffer[1*FLOAT_BYTES + 1], &packet->wheel_lin_vel, 4);
+    memcpy(&buffer[2*FLOAT_BYTES + 1], &packet->wheel_angular_vel, 4);
+    memcpy(&buffer[3*FLOAT_BYTES + 1], &packet->odom_x_pos, 4);
+    memcpy(&buffer[4*FLOAT_BYTES + 1], &packet->odom_y_pos, 4);
+    memcpy(&buffer[5*FLOAT_BYTES + 1], &packet->odom_yaw, 4);
+    memcpy(&buffer[6*FLOAT_BYTES + 1], &packet->cmd_vel_x, 4);
+    memcpy(&buffer[7*FLOAT_BYTES + 1], &packet->cmd_vel_z, 4);
 
-  buffer[SERIAL_BUFFER_LENGTH-3] = 0x02;  // crc high byte
-  buffer[SERIAL_BUFFER_LENGTH-2] = 0x01;  // crc low byte
-  buffer[SERIAL_BUFFER_LENGTH-1] = 0x00;  // end of message
-
-  Serial.write(buffer, SERIAL_BUFFER_LENGTH);
+    buffer[SERIAL_BUFFER_LENGTH-3] = 0x02;  // crc high byte
+    buffer[SERIAL_BUFFER_LENGTH-2] = 0x01;  // crc low byte
+    buffer[SERIAL_BUFFER_LENGTH-1] = 0x00;  // end of message
+    if(Serial)
+        Serial.write(buffer, SERIAL_BUFFER_LENGTH);
 }
 
 void setup() 
@@ -195,7 +223,7 @@ void setup()
     fullStop();
     while(!Serial)
     {
-        flashLED(1);
+        delay(1);
     }
     next_run_time = millis();
 }
@@ -206,11 +234,22 @@ char buffer[MAX_BUFFER_SIZE];
 char* buffer_pos = buffer;
 uint8_t buffer_size = 0;
 void loop() {
+    // Catch if serial connection is lost
+    if(!Serial)
+    {
+        fullStop();
+        while(!Serial)
+        {
+            delay(1);
+        }
+        next_run_time = millis();
+        buffer_size = 0;
+        buffer_pos = buffer;
+    }
     // check for incoming data
-    float cmd_lin_x, cmd_ang_z;
     if(Serial.available())
     {
-        int readable_bytes = Serial.available();
+        unsigned int readable_bytes = Serial.available();
         if(readable_bytes > MAX_BUFFER_SIZE-buffer_size)
         {
             readable_bytes = MAX_BUFFER_SIZE-buffer_size;
@@ -226,12 +265,13 @@ void loop() {
                 //Serial.println("we should have a message");
                 if(*(current_char+INCOMING_PACKET_SIZE-3) == 2 && *(current_char+INCOMING_PACKET_SIZE-2) == 1 && *(current_char+INCOMING_PACKET_SIZE-1) == 0)
                 {
+                    float cmd_lin_x, cmd_ang_z;
                     memcpy(&cmd_lin_x, current_char+1, 4); // cmd.linear.x
                     memcpy(&cmd_ang_z, current_char+5, 4); // cmd.angular.z
 
                     // store the result
-                    twist_msg.linear.x = cmd_lin_x;
-                    twist_msg.angular.z = cmd_ang_z;
+                    target_lin_vel = cmd_lin_x;
+                    target_ang_vel = cmd_ang_z;
                     prev_cmd_time = millis();
 
                     // move the buffer back
@@ -253,9 +293,6 @@ void loop() {
     // check if time to send data
     unsigned long long now = millis();
     if (now > next_run_time) {
-        if (now - next_run_time > CONTROL_INTERVAL * 10) {
-            digitalWrite(LED_PIN, HIGH); // turn on if schedule is missed
-        }
         next_run_time += CONTROL_INTERVAL;
 
         moveBase();
