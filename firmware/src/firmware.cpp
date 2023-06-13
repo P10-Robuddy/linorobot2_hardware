@@ -36,6 +36,8 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include "encoder.h"
 
+#define CONTROL_INTERVAL 20  // ms
+
 void flashLED(int n_times)
 {
     for(int i=0; i<n_times; i++)
@@ -56,8 +58,12 @@ float target_ang_vel;
 
 unsigned long prev_cmd_time = 0;
 unsigned long prev_odom_update = 0;
-
-#define CONTROL_INTERVAL 20  // ms
+unsigned long long next_run_time;
+const unsigned int MAX_BUFFER_SIZE = 256;
+const uint8_t INCOMING_PACKET_SIZE = 12;
+char serial_buffer[MAX_BUFFER_SIZE]; // TODO: use circular buffer instead
+char* buffer_pos = serial_buffer;
+uint8_t buffer_size = 0;
 
 Encoder motor1_encoder(MOTOR1_ENCODER_A, MOTOR1_ENCODER_B, COUNTS_PER_REV1, MOTOR1_ENCODER_INV);
 Encoder motor2_encoder(MOTOR2_ENCODER_A, MOTOR2_ENCODER_B, COUNTS_PER_REV2, MOTOR2_ENCODER_INV);
@@ -86,8 +92,6 @@ Kinematics kinematics(
 
 Odometry odometry;
 IMU bno;
-
-unsigned long long next_run_time;
 
 void fullStop()
 {
@@ -186,7 +190,7 @@ struct robot_measurement_packet {
 void send_packet(robot_measurement_packet* packet) {
     // protocol:
     // header, x floats of 4 bytes,2 CRC bytes, end of message
-    // [0xFF][float]...[float][CRC16][0xFE]
+    // [0xFF][float]...[float][CRC16][0x00]
 
     size_t SERIAL_BUFFER_LENGTH = 36;
     uint8_t buffer[SERIAL_BUFFER_LENGTH];
@@ -201,8 +205,8 @@ void send_packet(robot_measurement_packet* packet) {
     memcpy(&buffer[6*FLOAT_BYTES + 1], &packet->cmd_vel_x, 4);
     memcpy(&buffer[7*FLOAT_BYTES + 1], &packet->cmd_vel_z, 4);
 
-    buffer[SERIAL_BUFFER_LENGTH-3] = 0x02;  // crc high byte
-    buffer[SERIAL_BUFFER_LENGTH-2] = 0x01;  // crc low byte
+    buffer[SERIAL_BUFFER_LENGTH-3] = 0x02;  // TODO: crc high byte
+    buffer[SERIAL_BUFFER_LENGTH-2] = 0x01;  // TODO: crc low byte
     buffer[SERIAL_BUFFER_LENGTH-1] = 0x00;  // end of message
     if(Serial)
         Serial.write(buffer, SERIAL_BUFFER_LENGTH);
@@ -228,11 +232,6 @@ void setup()
     next_run_time = millis();
 }
 
-const unsigned int MAX_BUFFER_SIZE = 512;
-const int INCOMING_PACKET_SIZE = 12;
-char buffer[MAX_BUFFER_SIZE];
-char* buffer_pos = buffer;
-uint8_t buffer_size = 0;
 void loop() {
     // Catch if serial connection is lost
     if(!Serial)
@@ -244,7 +243,7 @@ void loop() {
         }
         next_run_time = millis();
         buffer_size = 0;
-        buffer_pos = buffer;
+        buffer_pos = serial_buffer;
     }
     // check for incoming data
     if(Serial.available())
@@ -257,32 +256,26 @@ void loop() {
         Serial.readBytes(buffer_pos+buffer_size, readable_bytes);
         buffer_size += readable_bytes;
 
-        while(buffer_pos+buffer_size - buffer >= INCOMING_PACKET_SIZE)
+        while(buffer_pos+buffer_size - serial_buffer >= INCOMING_PACKET_SIZE)
         {
-            char* current_char = buffer_pos;
-            if(*current_char == 0xFF) // start of message
+            if(*buffer_pos == 0xFF) // start of message
             {
-                //Serial.println("we should have a message");
-                if(*(current_char+INCOMING_PACKET_SIZE-3) == 2 && *(current_char+INCOMING_PACKET_SIZE-2) == 1 && *(current_char+INCOMING_PACKET_SIZE-1) == 0)
+                if(*(buffer_pos+INCOMING_PACKET_SIZE-3) == 2 && *(buffer_pos+INCOMING_PACKET_SIZE-2) == 1 && *(buffer_pos+INCOMING_PACKET_SIZE-1) == 0)
                 {
-                    float cmd_lin_x, cmd_ang_z;
-                    memcpy(&cmd_lin_x, current_char+1, 4); // cmd.linear.x
-                    memcpy(&cmd_ang_z, current_char+5, 4); // cmd.angular.z
+                    memcpy(&target_lin_vel, buffer_pos+1, 4); // cmd.linear.x
+                    memcpy(&target_ang_vel, buffer_pos+5, 4); // cmd.angular.z
 
-                    // store the result
-                    target_lin_vel = cmd_lin_x;
-                    target_ang_vel = cmd_ang_z;
                     prev_cmd_time = millis();
 
-                    // move the buffer back
-                    unsigned int current_pos = buffer_pos - buffer;
+                    // move the buffer back TODO: use circular buffer instead, to avoid this
+                    unsigned int current_pos = buffer_pos - serial_buffer;
                     for(unsigned int i = current_pos; i < MAX_BUFFER_SIZE; i++)
                     {
-                        buffer[i-current_pos] = buffer[i];
+                        serial_buffer[i-current_pos] = serial_buffer[i];
                     }
-                    buffer_pos = buffer;
+                    buffer_pos = serial_buffer;
                     buffer_size -= INCOMING_PACKET_SIZE;
-                    break;
+                    continue;
                 }
             }
             buffer_pos++;
@@ -290,11 +283,12 @@ void loop() {
         }
     }
 
-    // check if time to send data
+    // run at control and publish data at 1/CONTROL_INTERVAL Hz
     unsigned long long now = millis();
     if (now > next_run_time) {
         next_run_time += CONTROL_INTERVAL;
 
+        // control loop, odom update etc.
         moveBase();
 
         // send data
