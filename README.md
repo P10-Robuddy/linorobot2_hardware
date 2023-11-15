@@ -17,6 +17,7 @@ It is assumed that you already have ROS2 and linorobot2 package installed. If yo
 
     sudo apt install -y python3.10-venv
     sudo apt install -y libusb-dev
+    sudo apt install -y screen
 
 ### 4. Install PlatformIO
 
@@ -40,13 +41,19 @@ and copy the file to /etc/udev/rules.d :
 
     sudo cp 00-teensy.rules /etc/udev/rules.d/
 
-### 6. Install Screen Terminal
+### 6. Namespace
 
-    sudo apt install -y screen
+You should set a namespace in _config.h_. Here it is set to polybot1.
+
+    #define ROS_NAMESPACE "polybot1"
 
 ## Calibration
 
 Before proceeding, **ensure that your robot is elevated and the wheels aren't touching the ground**.
+
+You might want to source _bashrc_ again:
+
+    source $HOME/.bashrc
 
 ### 1. Motor Check
 
