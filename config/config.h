@@ -41,5 +41,5 @@
 #endif
 
 #ifndef ROS_DOMAIN_ID
-    #define ROS_DOMAIN_ID 0
+    #define ROS_DOMAIN_ID 60
 #endif
