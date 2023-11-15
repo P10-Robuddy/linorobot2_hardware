@@ -113,6 +113,8 @@ You might want to source the install setup again.
     cd $HOME/linorobot_ws
     source install/setup.bash
 
+Also make sure to run the bringup script first from [here](https://github.com/P9-Robuddy/linorobot2).
+
 ### 1. Run the micro-ROS agent
 
 This will allow the robot to receive Twist messages to control the robot, and publish odometry and IMU data straight from the microcontroller. Compared to Linorobot's ROS1 version, the odometry and IMU data published from the microcontroller use standard ROS2 messages and do not require any relay nodes to reconstruct the data to complete [sensor_msgs/Imu](http://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/Imu.html) and [nav_msgs/Odometry](http://docs.ros.org/en/noetic/api/nav_msgs/html/msg/Odometry.html) messages.
