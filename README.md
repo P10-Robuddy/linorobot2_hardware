@@ -11,7 +11,7 @@ It is assumed that you already have ROS2 and linorobot2 package installed. If yo
 ### 2. Download linorobot2_hardware
 
     cd $HOME
-    git clone https://github.com/P9-Robuddy/linorobot2_hardware
+    git clone https://github.com/linorobot/linorobot2_hardware
 
 ### 3. Install dependencies
 
