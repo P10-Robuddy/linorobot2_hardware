@@ -24,8 +24,8 @@ class Odometry
 {
     public:
         Odometry();
+        void add_namespace(const char* ns);
         void update(float vel_dt, float linear_vel_x, float linear_vel_y, float angular_vel_z);
-        float get_heading() {return heading_;};
         nav_msgs__msg__Odometry getData();
 
     private:

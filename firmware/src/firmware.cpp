@@ -36,34 +36,65 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include "encoder.h"
 
-#define CONTROL_INTERVAL 20  // ms
+#ifndef ROS_DOMAIN_ID
+#define ROS_DOMAIN_ID 0
+#endif
 
 void flashLED(int n_times)
 {
     for(int i=0; i<n_times; i++)
     {
         digitalWrite(LED_PIN, HIGH);
-        delay(250);
+        delay(150);
         digitalWrite(LED_PIN, LOW);
-        delay(250);
+        delay(150);
     }
+    delay(1000);
 }
+
+void rclErrorLoop()
+{
+    for(int i = 0; i < 5; i++)
+    {
+        flashLED(2);
+    }
+    SCB_AIRCR = 0x05FA0004; //restart register
+    //flashLED(2);
+}
+
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){rclErrorLoop();}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
+#define EXECUTE_EVERY_N_MS(MS, X)  do { \
+  static volatile int64_t init = -1; \
+  if (init == -1) { init = uxr_millis();} \
+  if (uxr_millis() - init > MS) { X; init = uxr_millis();} \
+} while (0)
+
+rcl_publisher_t odom_publisher;
+rcl_publisher_t imu_publisher;
+rcl_subscription_t twist_subscriber;
 
 nav_msgs__msg__Odometry odom_msg;
 sensor_msgs__msg__Imu imu_msg;
 geometry_msgs__msg__Twist twist_msg;
 
-float target_lin_vel;
-float target_ang_vel;
+rclc_executor_t executor;
+rclc_support_t support;
+rcl_allocator_t allocator;
+rcl_node_t node;
+rcl_timer_t control_timer;
 
+unsigned long long time_offset = 0;
 unsigned long prev_cmd_time = 0;
 unsigned long prev_odom_update = 0;
-unsigned long long next_run_time;
-const unsigned int MAX_BUFFER_SIZE = 256;
-const uint8_t INCOMING_PACKET_SIZE = 12;
-char serial_buffer[MAX_BUFFER_SIZE]; // TODO: use circular buffer instead
-char* buffer_pos = serial_buffer;
-uint8_t buffer_size = 0;
+
+enum states
+{
+  WAITING_AGENT,
+  AGENT_AVAILABLE,
+  AGENT_CONNECTED,
+  AGENT_DISCONNECTED
+} state;
 
 Encoder motor1_encoder(MOTOR1_ENCODER_A, MOTOR1_ENCODER_B, COUNTS_PER_REV1, MOTOR1_ENCODER_INV);
 Encoder motor2_encoder(MOTOR2_ENCODER_A, MOTOR2_ENCODER_B, COUNTS_PER_REV2, MOTOR2_ENCODER_INV);
@@ -91,42 +122,36 @@ Kinematics kinematics(
 );
 
 Odometry odometry;
+//Adafruit_BNO055 bno;
 IMU bno;
 
-void fullStop()
+struct timespec getTime()
 {
-    target_lin_vel = 0.0;
-    target_ang_vel = 0.0;
+    struct timespec tp = {0};
+    // add time difference between uC time and ROS time to
+    // synchronize time with ROS
+    unsigned long long now = millis() + time_offset;
+    tp.tv_sec = now / 1000;
+    tp.tv_nsec = (now % 1000) * 1000000;
 
-    motor1_controller.brake();
-    motor2_controller.brake();
-    motor3_controller.brake();
-    motor4_controller.brake();
+    return tp;
 }
 
-void ramp_value(double& value, float target)
+void twistCallback(const void * msgin)
 {
-    double difference = target-value;
-    const double MS_TO_SEC =  0.001;
-    const double ramp = VELOCITY_RAMP*CONTROL_INTERVAL*MS_TO_SEC;
-    if (abs(difference) > ramp)
-    {
-        if(difference > 0)
-        {
-            difference = ramp;
-        }
-        else
-        {
-            difference = -ramp;
-        }
-    }
-    value += difference;
+    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+
+    prev_cmd_time = millis();
 }
 
-void rampInput()
+void syncTime()
 {
-    ramp_value(twist_msg.linear.x, target_lin_vel);
-    ramp_value(twist_msg.angular.z, target_ang_vel);
+    // get the current time from the agent
+    unsigned long now = millis();
+    RCCHECK(rmw_uros_sync_session(10));
+    unsigned long long ros_time_ms = rmw_uros_epoch_millis();
+    // now we can find the difference between ROS time and uC time
+    time_offset = ros_time_ms - now;
 }
 
 void moveBase()
@@ -134,15 +159,16 @@ void moveBase()
     // brake if there's no command received, or when it's only the first command sent
     if(((millis() - prev_cmd_time) >= 500))
     {
-        fullStop();
+        twist_msg.linear.x = 0.0;
+        twist_msg.linear.y = 0.0;
+        twist_msg.angular.z = 0.0;
+
         digitalWrite(LED_PIN, HIGH);
     }
-
-    rampInput();
     // get the required rpm for each motor based on required velocities, and base used
     Kinematics::rpm req_rpm = kinematics.getRPM(
         twist_msg.linear.x,
-        0.0,
+        twist_msg.linear.y,
         twist_msg.angular.z
     );
     // get the current speed of each motor
@@ -176,46 +202,128 @@ void moveBase()
     );
 }
 
-struct robot_measurement_packet {
-    float imu_yaw_rate;
-    float wheel_lin_vel;
-    float wheel_angular_vel;
-    float odom_x_pos;
-    float odom_y_pos;
-    float odom_yaw;
-    float cmd_vel_x;
-    float cmd_vel_z;
-};
+void publishData()
+{
+    odom_msg = odometry.getData();
+    imu_msg = bno.getData();
 
-void send_packet(robot_measurement_packet* packet) {
-    // protocol:
-    // header, x floats of 4 bytes,2 CRC bytes, end of message
-    // [0xFF][float]...[float][CRC16][0x00]
+    struct timespec time_stamp = getTime();
 
-    size_t SERIAL_BUFFER_LENGTH = 36;
-    uint8_t buffer[SERIAL_BUFFER_LENGTH];
-    buffer[0] = 0xFF;  // start of msg
-    const int FLOAT_BYTES = 4;
-    memcpy(&buffer[0*FLOAT_BYTES + 1], &packet->imu_yaw_rate, 4);
-    memcpy(&buffer[1*FLOAT_BYTES + 1], &packet->wheel_lin_vel, 4);
-    memcpy(&buffer[2*FLOAT_BYTES + 1], &packet->wheel_angular_vel, 4);
-    memcpy(&buffer[3*FLOAT_BYTES + 1], &packet->odom_x_pos, 4);
-    memcpy(&buffer[4*FLOAT_BYTES + 1], &packet->odom_y_pos, 4);
-    memcpy(&buffer[5*FLOAT_BYTES + 1], &packet->odom_yaw, 4);
-    memcpy(&buffer[6*FLOAT_BYTES + 1], &packet->cmd_vel_x, 4);
-    memcpy(&buffer[7*FLOAT_BYTES + 1], &packet->cmd_vel_z, 4);
+    odom_msg.header.stamp.sec = time_stamp.tv_sec;
+    odom_msg.header.stamp.nanosec = time_stamp.tv_nsec;
 
-    buffer[SERIAL_BUFFER_LENGTH-3] = 0x02;  // TODO: crc high byte
-    buffer[SERIAL_BUFFER_LENGTH-2] = 0x01;  // TODO: crc low byte
-    buffer[SERIAL_BUFFER_LENGTH-1] = 0x00;  // end of message
-    if(Serial)
-        Serial.write(buffer, SERIAL_BUFFER_LENGTH);
+    imu_msg.header.stamp.sec = time_stamp.tv_sec;
+    imu_msg.header.stamp.nanosec = time_stamp.tv_nsec;
+
+    RCSOFTCHECK(rcl_publish(&imu_publisher, &imu_msg, NULL));
+    RCSOFTCHECK(rcl_publish(&odom_publisher, &odom_msg, NULL));
+}
+
+void controlCallback(rcl_timer_t * timer, int64_t last_call_time)
+{
+    RCLC_UNUSED(last_call_time);
+    if (timer != NULL)
+    {
+       moveBase();
+       publishData();
+    }
+}
+
+bool createEntities()
+{
+    allocator = rcl_get_default_allocator();
+    //create init_options
+    // RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+
+    // Initialize and modify options
+    rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
+    RCCHECK(rcl_init_options_init(&init_options, allocator));
+    RCCHECK(rcl_init_options_set_domain_id(&init_options, ROS_DOMAIN_ID));
+    RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
+
+    // create node
+    RCCHECK(rclc_node_init_default(&node, "linorobot_base_node", NAMESPACE, &support));
+    // create odometry publisher
+    RCCHECK(rclc_publisher_init_default(
+        &odom_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
+        "odom/unfiltered"
+    ));
+    // create IMU publisher
+    RCCHECK(rclc_publisher_init_default(
+        &imu_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
+        "imu/data"
+    ));
+    // create twist command subscriber
+    RCCHECK(rclc_subscription_init_default(
+        &twist_subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+        "cmd_vel"
+    ));
+    // create timer for actuating the motors at 50 Hz (1000/20)
+    const unsigned int control_timeout = 20;
+    RCCHECK(rclc_timer_init_default(
+        &control_timer,
+        &support,
+        RCL_MS_TO_NS(control_timeout),
+        controlCallback
+    ));
+    executor = rclc_executor_get_zero_initialized_executor();
+    RCCHECK(rclc_executor_init(&executor, &support.context, 10, & allocator));
+    RCCHECK(rclc_executor_add_subscription(
+        &executor,
+        &twist_subscriber,
+        &twist_msg,
+        &twistCallback,
+        ON_NEW_DATA
+    ));
+    flashLED(5);
+    RCCHECK(rclc_executor_add_timer(&executor, &control_timer));
+    flashLED(5);
+    // synchronize time with the agent
+    syncTime();
+    //digitalWrite(LED_PIN, HIGH);
+    return true;
+}
+
+bool destroyEntities()
+{
+    rmw_context_t * rmw_context = rcl_context_get_rmw_context(&support.context);
+    (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
+
+    rcl_publisher_fini(&odom_publisher, &node);
+    rcl_publisher_fini(&imu_publisher, &node);
+    rcl_subscription_fini(&twist_subscriber, &node);
+    rcl_node_fini(&node);
+    rcl_timer_fini(&control_timer);
+    rclc_executor_fini(&executor);
+    rclc_support_fini(&support);
+
+    digitalWrite(LED_PIN, HIGH);
+
+    return true;
+}
+
+void fullStop()
+{
+    twist_msg.linear.x = 0.0;
+    twist_msg.linear.y = 0.0;
+    twist_msg.angular.z = 0.0;
+
+    motor1_controller.brake();
+    motor2_controller.brake();
+    motor3_controller.brake();
+    motor4_controller.brake();
 }
 
 void setup()
 {
     pinMode(LED_PIN, OUTPUT);
-    flashLED(3);
+
     bool imu_ok = bno.init();
     if(!imu_ok)
     {
@@ -224,85 +332,42 @@ void setup()
             flashLED(3);
         }
     }
-    fullStop();
-    while(!Serial)
-    {
-        delay(1);
-    }
-    next_run_time = millis();
+
+    Serial.begin(115200);
+    set_microros_serial_transports(Serial);
+    createEntities();
+    // bno.add_namespace(NAMESPACE);
+    // odometry.add_namespace(NAMESPACE);
+    flashLED(5);
+    state = AGENT_CONNECTED;
 }
 
 void loop() {
-    // Catch if serial connection is lost
-    if(!Serial)
+    //rclc_executor_spin_some(&executor, RCL_MS_TO_NS(20));
+    switch (state)
     {
-        fullStop();
-        while(!Serial)
-        {
-            delay(1);
-        }
-        next_run_time = millis();
-        buffer_size = 0;
-        buffer_pos = serial_buffer;
-    }
-    // check for incoming data
-    if(Serial.available())
-    {
-        unsigned int readable_bytes = Serial.available();
-        if(readable_bytes > MAX_BUFFER_SIZE-buffer_size)
-        {
-            readable_bytes = MAX_BUFFER_SIZE-buffer_size;
-        }
-        Serial.readBytes(buffer_pos+buffer_size, readable_bytes);
-        buffer_size += readable_bytes;
-
-        while(buffer_pos+buffer_size - serial_buffer >= INCOMING_PACKET_SIZE)
-        {
-            if(*buffer_pos == 0xFF) // start of message
+        case WAITING_AGENT:
+            EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE : WAITING_AGENT;);
+            break;
+        case AGENT_AVAILABLE:
+            state = (true == createEntities() ? AGENT_CONNECTED : WAITING_AGENT);
+            if (state == WAITING_AGENT)
             {
-                if(*(buffer_pos+INCOMING_PACKET_SIZE-3) == 2 && *(buffer_pos+INCOMING_PACKET_SIZE-2) == 1 && *(buffer_pos+INCOMING_PACKET_SIZE-1) == 0)
-                {
-                    memcpy(&target_lin_vel, buffer_pos+1, 4); // cmd.linear.x
-                    memcpy(&target_ang_vel, buffer_pos+5, 4); // cmd.angular.z
-
-                    prev_cmd_time = millis();
-
-                    // move the buffer back TODO: use circular buffer instead, to avoid this
-                    unsigned int current_pos = buffer_pos - serial_buffer;
-                    for(unsigned int i = current_pos; i < MAX_BUFFER_SIZE; i++)
-                    {
-                        serial_buffer[i-current_pos] = serial_buffer[i];
-                    }
-                    buffer_pos = serial_buffer;
-                    buffer_size -= INCOMING_PACKET_SIZE;
-                    continue;
-                }
+                destroyEntities();
             }
-            buffer_pos++;
-            buffer_size--;
-        }
-    }
-
-    // run at control and publish data at 1/CONTROL_INTERVAL Hz
-    unsigned long long now = millis();
-    if (now > next_run_time) {
-        next_run_time += CONTROL_INTERVAL;
-
-        // control loop, odom update etc.
-        moveBase();
-
-        // send data
-        odom_msg = odometry.getData();
-        imu_msg = bno.getData();
-        robot_measurement_packet packet;
-        packet.imu_yaw_rate = imu_msg.angular_velocity.z;
-        packet.wheel_lin_vel = odom_msg.twist.twist.linear.x;
-        packet.wheel_angular_vel = odom_msg.twist.twist.angular.z;
-        packet.odom_x_pos = odom_msg.pose.pose.position.x;
-        packet.odom_y_pos = odom_msg.pose.pose.position.y;
-        packet.odom_yaw = odometry.get_heading();
-        packet.cmd_vel_x = twist_msg.linear.x;
-        packet.cmd_vel_z = twist_msg.angular.z;
-        send_packet(&packet);
+            break;
+        case AGENT_CONNECTED:
+            EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
+            if (state == AGENT_CONNECTED)
+            {
+                rclc_executor_spin_some(&executor, RCL_MS_TO_NS(20));
+            }
+            break;
+        case AGENT_DISCONNECTED:
+            destroyEntities();
+            state = WAITING_AGENT;
+            break;
+        default:
+            break;
     }
 }

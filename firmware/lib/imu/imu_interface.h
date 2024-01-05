@@ -56,6 +56,12 @@ class IMUInterface
             imu_msg_.header.frame_id = micro_ros_string_utilities_set(imu_msg_.header.frame_id, "imu_link");
         }
 
+        void add_namespace(const char* ns)
+        {
+            imu_msg_.header.frame_id = micro_ros_string_utilities_set(imu_msg_.header.frame_id, ns);
+            imu_msg_.header.frame_id = micro_ros_string_utilities_append(imu_msg_.header.frame_id, "_imu_link");
+        }
+
         virtual geometry_msgs__msg__Vector3 readAccelerometer() = 0;
         virtual geometry_msgs__msg__Vector3 readGyroscope() = 0;
         virtual bool startSensor() = 0;
