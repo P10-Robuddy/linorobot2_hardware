@@ -33,12 +33,12 @@ Motor motor3_controller(PWM_FREQUENCY, PWM_BITS, MOTOR3_INV, MOTOR3_PWM, MOTOR3_
 Motor motor4_controller(PWM_FREQUENCY, PWM_BITS, MOTOR4_INV, MOTOR4_PWM, MOTOR4_IN_A, MOTOR4_IN_B);
 
 Kinematics kinematics(
-    Kinematics::LINO_BASE, 
-    MOTOR_MAX_RPM, 
-    MAX_RPM_RATIO, 
-    MOTOR_OPERATING_VOLTAGE, 
-    MOTOR_POWER_MAX_VOLTAGE, 
-    WHEEL_DIAMETER, 
+    Kinematics::LINO_BASE,
+    MOTOR_MAX_RPM,
+    MAX_RPM_RATIO,
+    MOTOR_OPERATING_VOLTAGE,
+    MOTOR_POWER_MAX_VOLTAGE,
+    WHEEL_DIAMETER,
     LR_WHEELS_DISTANCE
 );
 
@@ -68,8 +68,8 @@ void loop()
 
     while (Serial.available())
     {
-        char character = Serial.read(); 
-        cmd.concat(character); 
+        char character = Serial.read();
+        cmd.concat(character);
         Serial.print(character);
         delay(1);
         if(character == '\r' and cmd.equals("spin\r"))
@@ -129,7 +129,7 @@ void sampleMotors(bool show_summary)
 
             motors[i]->spin(PWM_MAX);
         }
-        
+
         counts_per_rev[i] = encoders[i]->read() / total_rev;
     }
     if(show_summary)
@@ -161,7 +161,7 @@ void printSummary()
 
     Serial.print(labels[1]);
     Serial.println(counts_per_rev[1]);
-    
+
     Serial.print(labels[2]);
     Serial.print(counts_per_rev[2]);
     Serial.print(" ");
@@ -172,7 +172,7 @@ void printSummary()
 
     Serial.println("====================MAX VELOCITIES====================");
     float max_rpm = kinematics.getMaxRPM();
-    
+
     Kinematics::velocities max_linear = kinematics.getVelocities(max_rpm, max_rpm, max_rpm, max_rpm);
     Kinematics::velocities max_angular = kinematics.getVelocities(-max_rpm, max_rpm,-max_rpm, max_rpm);
 

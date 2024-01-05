@@ -72,7 +72,7 @@ void MPU9150::initialize() {
  * @return True if connection is valid, false otherwise
  */
 bool MPU9150::testConnection() {
-    return getDeviceID() == 0x34; 
+    return getDeviceID() == 0x34;
 }
 
 // AUX_VDDIO register (InvenSense demo code calls this RA_*G_OFFS_TC)
@@ -862,7 +862,7 @@ void MPU9150::setMasterClockSpeed(uint8_t speed) {
  * operation, and if it is cleared, then it's a write operation. The remaining
  * bits (6-0) are the 7-bit device address of the slave device.
  *
- * In read mode, the result of the read is placed in the lowest available 
+ * In read mode, the result of the read is placed in the lowest available
  * EXT_SENS_DATA register. For further information regarding the allocation of
  * read results, please refer to the EXT_SENS_DATA register description
  * (Registers 73 - 96).
@@ -2970,7 +2970,7 @@ void MPU9150::readMemoryBlock(uint8_t *data, uint16_t dataSize, uint8_t bank, ui
 
         // read the chunk of data as specified
         I2Cdev::readBytes(devAddr, MPU9150_RA_MEM_R_W, chunkSize, data + i);
-        
+
         // increase byte index by [chunkSize]
         i += chunkSize;
 
@@ -3005,7 +3005,7 @@ bool MPU9150::writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t b
 
         // make sure this chunk doesn't go past the bank boundary (256 bytes)
         if (chunkSize > 256 - address) chunkSize = 256 - address;
-        
+
         if (useProgMem) {
             // write the chunk of data as specified
             for (j = 0; j < chunkSize; j++) progBuffer[j] = pgm_read_byte(data + i + j);
@@ -3121,7 +3121,7 @@ bool MPU9150::writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, b
             Serial.println(" found...");*/
             if (special == 0x01) {
                 // enable DMP-related interrupts
-                
+
                 //setIntZeroMotionEnabled(true);
                 //setIntFIFOBufferOverflowEnabled(true);
                 //setIntDMPEnabled(true);
@@ -3133,7 +3133,7 @@ bool MPU9150::writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, b
                 success = false;
             }
         }
-        
+
         if (!success) {
             if (useProgMem) free(progBuffer);
             return false; // uh oh

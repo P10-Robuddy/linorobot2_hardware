@@ -173,7 +173,7 @@ class ADXL345 {
 
         // DEVID register
         uint8_t getDeviceID();
-        
+
         // THRESH_TAP register
         uint8_t getTapThreshold();
         void setTapThreshold(uint8_t threshold);
@@ -187,23 +187,23 @@ class ADXL345 {
         void setOffsetY(int8_t y);
         int8_t getOffsetZ();
         void setOffsetZ(int8_t z);
-        
+
         // DUR register
         uint8_t getTapDuration();
         void setTapDuration(uint8_t duration);
-        
+
         // LATENT register
         uint8_t getDoubleTapLatency();
         void setDoubleTapLatency(uint8_t latency);
-        
+
         // WINDOW register
         uint8_t getDoubleTapWindow();
         void setDoubleTapWindow(uint8_t window);
-        
+
         // THRESH_ACT register
         uint8_t getActivityThreshold();
         void setActivityThreshold(uint8_t threshold);
-        
+
         // THRESH_INACT register
         uint8_t getInactivityThreshold();
         void setInactivityThreshold(uint8_t threshold);
@@ -211,7 +211,7 @@ class ADXL345 {
         // TIME_INACT register
         uint8_t getInactivityTime();
         void setInactivityTime(uint8_t time);
-        
+
         // ACT_INACT_CTL register
         bool getActivityAC();
         void setActivityAC(bool enabled);
@@ -229,15 +229,15 @@ class ADXL345 {
         void setInactivityYEnabled(bool enabled);
         bool getInactivityZEnabled();
         void setInactivityZEnabled(bool enabled);
-        
+
         // THRESH_FF register
         uint8_t getFreefallThreshold();
         void setFreefallThreshold(uint8_t threshold);
-        
+
         // TIME_FF register
         uint8_t getFreefallTime();
         void setFreefallTime(uint8_t time);
-        
+
         // TAP_AXES register
         bool getTapAxisSuppress();
         void setTapAxisSuppress(bool enabled);
@@ -247,7 +247,7 @@ class ADXL345 {
         void setTapAxisYEnabled(bool enabled);
         bool getTapAxisZEnabled();
         void setTapAxisZEnabled(bool enabled);
-        
+
         // ACT_TAP_STATUS register
         bool getActivitySourceX();
         bool getActivitySourceY();
@@ -256,7 +256,7 @@ class ADXL345 {
         bool getTapSourceX();
         bool getTapSourceY();
         bool getTapSourceZ();
-        
+
         // BW_RATE register
         bool getLowPowerEnabled();
         void setLowPowerEnabled(bool enabled);
@@ -274,7 +274,7 @@ class ADXL345 {
         void setSleepEnabled(bool enabled);
         uint8_t getWakeupFrequency();
         void setWakeupFrequency(uint8_t frequency);
-        
+
         // INT_ENABLE register
         bool getIntDataReadyEnabled();
         void setIntDataReadyEnabled(bool enabled);
@@ -292,7 +292,7 @@ class ADXL345 {
         void setIntWatermarkEnabled(bool enabled);
         bool getIntOverrunEnabled();
         void setIntOverrunEnabled(bool enabled);
-        
+
         // INT_MAP register
         uint8_t getIntDataReadyPin();
         void setIntDataReadyPin(uint8_t pin);
@@ -320,7 +320,7 @@ class ADXL345 {
         uint8_t getIntFreefallSource();
         uint8_t getIntWatermarkSource();
         uint8_t getIntOverrunSource();
-        
+
         // DATA_FORMAT register
         uint8_t getSelfTestEnabled();
         void setSelfTestEnabled(uint8_t enabled);
@@ -348,7 +348,7 @@ class ADXL345 {
         void setFIFOTriggerInterruptPin(uint8_t interrupt);
         uint8_t getFIFOSamples();
         void setFIFOSamples(uint8_t size);
-        
+
         // FIFO_STATUS register
         bool getFIFOTriggerOccurred();
         uint8_t getFIFOLength();

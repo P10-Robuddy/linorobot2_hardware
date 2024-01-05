@@ -33,7 +33,7 @@ class Kinematics
             float motor3;
             float motor4;
         };
-        
+
         struct velocities
         {
             float linear_x;

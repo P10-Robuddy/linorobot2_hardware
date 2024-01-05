@@ -18,10 +18,10 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(enA,OUTPUT);
   pinMode(enB,OUTPUT);
-  pinMode(in1, OUTPUT);  
-  pinMode(in2, OUTPUT); 
-  pinMode(in3, OUTPUT); 
-  pinMode(in4, OUTPUT); 
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+  pinMode(in3, OUTPUT);
+  pinMode(in4, OUTPUT);
 
 }
 
@@ -68,7 +68,7 @@ void demoTwo(){
     analogWrite(enB, i);
     delay(20);
   }
-  
+
   for (int i = 255; i >= 0; i--){
     analogWrite(enA, i);
     analogWrite(enB, i);

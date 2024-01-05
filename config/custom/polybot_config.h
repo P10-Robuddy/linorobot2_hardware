@@ -1,8 +1,13 @@
 #ifndef POLYBOT_CONFIG_H
 #define POLYBOT_CONFIG_H
 
-#define ROS_NAMESPACE "polybot05"
-#define ROS_DOMAIN_ID 0
+#ifndef NAMESPACE
+    #define NAMESPACE "polybot01"
+#endif
+
+#ifndef ROS_DOMAIN_ID
+    #define ROS_DOMAIN_ID 0
+#endif
 
 #define LED_PIN 13 //used for debugging status
 
@@ -25,21 +30,21 @@
 // #define USE_MPU9150_IMU
 // #define USE_MPU9250_IMU
 
-#define K_P 10.0                             // P constant
-#define K_I 1.0                             // I constant
-#define K_D 0.0                             // D constant
-#define VELOCITY_RAMP 5.0 // m/s^2 and rad/s^2
+#define K_P 2.0                             // P constant
+#define K_I 0.5                             // I constant
+#define K_D 1.0                             // D constant
+
 /*
 ROBOT ORIENTATION
          FRONT
     MOTOR1  MOTOR2  (2WD/ACKERMANN)
-    MOTOR3  MOTOR4  (4WD/MECANUM)  
+    MOTOR3  MOTOR4  (4WD/MECANUM)
          BACK
 */
 
 //define your robot' specs here
-#define MOTOR_MAX_RPM 320                   // motor's max RPM          
-#define MAX_RPM_RATIO 1                  // max RPM allowed for each MAX_RPM_ALLOWED = MOTOR_MAX_RPM * MAX_RPM_RATIO          
+#define MOTOR_MAX_RPM 200                   // motor's max RPM
+#define MAX_RPM_RATIO 1                  // max RPM allowed for each MAX_RPM_ALLOWED = MOTOR_MAX_RPM * MAX_RPM_RATIO
 #define MOTOR_OPERATING_VOLTAGE 12          // motor's operating voltage (used to calculate max RPM)
 #define MOTOR_POWER_MAX_VOLTAGE 12          // max voltage of the motor's power source (used to calculate max RPM)
 #define MOTOR_POWER_MEASURED_VOLTAGE 12     // current voltage reading of the power connected to the motor (used for calibration)
@@ -53,26 +58,26 @@ ROBOT ORIENTATION
 #define PWM_FREQUENCY 20000                 // PWM Frequency
 
 // INVERT ENCODER COUNTS
-#define MOTOR1_ENCODER_INV false 
-#define MOTOR2_ENCODER_INV false 
-#define MOTOR3_ENCODER_INV false 
-#define MOTOR4_ENCODER_INV false 
+#define MOTOR1_ENCODER_INV false
+#define MOTOR2_ENCODER_INV true
+#define MOTOR3_ENCODER_INV false
+#define MOTOR4_ENCODER_INV false
 
 // INVERT MOTOR DIRECTIONS
-#define MOTOR1_INV false
-#define MOTOR2_INV false
+#define MOTOR1_INV true
+#define MOTOR2_INV true
 #define MOTOR3_INV false
 #define MOTOR4_INV false
 
 // ENCODER PINS
 #define MOTOR1_ENCODER_A 2
-#define MOTOR1_ENCODER_B 3 
+#define MOTOR1_ENCODER_B 3
 
 #define MOTOR2_ENCODER_A 36
-#define MOTOR2_ENCODER_B 35 
+#define MOTOR2_ENCODER_B 35
 
 #define MOTOR3_ENCODER_A 13
-#define MOTOR3_ENCODER_B 13 
+#define MOTOR3_ENCODER_B 13
 
 #define MOTOR4_ENCODER_A 13
 #define MOTOR4_ENCODER_B 13
@@ -81,7 +86,7 @@ ROBOT ORIENTATION
 #ifdef USE_GENERIC_2_IN_MOTOR_DRIVER
   #define MOTOR1_PWM 6 //Pin no 21 is not a PWM pin on Teensy 4.x, you can swap it with pin no 1 instead.
   #define MOTOR1_IN_A 5
-  #define MOTOR1_IN_B 7 
+  #define MOTOR1_IN_B 7
 
   #define MOTOR2_PWM 15
   #define MOTOR2_IN_A 16
@@ -97,7 +102,7 @@ ROBOT ORIENTATION
 
   #define PWM_MAX pow(2, PWM_BITS) - 1
   #define PWM_MIN -PWM_MAX
-#endif 
+#endif
 
 #ifdef USE_GENERIC_1_IN_MOTOR_DRIVER
   #define MOTOR1_PWM 21 //Pin no 21 is not a PWM pin on Teensy 4.x, you can use pin no 1 instead.
@@ -118,7 +123,7 @@ ROBOT ORIENTATION
 
   #define PWM_MAX pow(2, PWM_BITS) - 1
   #define PWM_MIN -PWM_MAX
-#endif 
+#endif
 
 #ifdef USE_BTS7960_MOTOR_DRIVER
   #define MOTOR1_PWM -1 //DON'T TOUCH THIS! This is just a placeholder
@@ -150,7 +155,7 @@ ROBOT ORIENTATION
   #define MOTOR2_IN_A -1 //DON'T TOUCH THIS! This is just a placeholder
   #define MOTOR2_IN_B -1 //DON'T TOUCH THIS! This is just a placeholder
 
-  #define MOTOR3_PWM 22 
+  #define MOTOR3_PWM 22
   #define MOTOR3_IN_A -1 //DON'T TOUCH THIS! This is just a placeholder
   #define MOTOR3_IN_B -1 //DON'T TOUCH THIS! This is just a placeholder
 

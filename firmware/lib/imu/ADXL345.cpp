@@ -291,7 +291,7 @@ void ADXL345::setActivityThreshold(uint8_t threshold) {
 // THRESH_INACT register
 
 /** Get inactivity threshold.
- * The THRESH_INACT register is eight bits and holds the threshold value for 
+ * The THRESH_INACT register is eight bits and holds the threshold value for
  * detecting inactivity. The data format is unsigned, so the magnitude of the
  * inactivity event is compared with the value in the THRESH_INACT register. The
  * scale factor is 62.5 mg/LSB. A value of 0 may result in undesirable behavior
@@ -1505,7 +1505,7 @@ void ADXL345::setRange(uint8_t range) {
  * X, Y, or Z. The DATA_FORMAT register (Address 0x31) controls the format of
  * the data. It is recommended that a multiple-byte read of all registers be
  * performed to prevent a change in data between reads of sequential registers.
- * 
+ *
  * The DATA_FORMAT register controls the presentation of data to Register 0x32
  * through Register 0x37. All data, except that for the +/-16 g range, must be
  * clipped to avoid rollover.
@@ -1560,7 +1560,7 @@ int16_t ADXL345::getAccelerationZ() {
  *       oldest data is overwritten with newer data.)
  *
  * 0x3 = Trigger (When triggered by the trigger bit, FIFO holds the last data
- *       samples before the trigger event and then continues to collect data 
+ *       samples before the trigger event and then continues to collect data
  *       until full. New data is collected only when FIFO is not full.)
  *
  * @return Curent FIFO mode

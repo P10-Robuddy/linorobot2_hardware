@@ -49,7 +49,7 @@ class IMUInterface
             gyro_cal_.y = gyro_cal_.y / (float)sample_size_;
             gyro_cal_.z = gyro_cal_.z / (float)sample_size_;
         }
-   
+
     public:
         IMUInterface()
         {
@@ -72,23 +72,23 @@ class IMUInterface
         sensor_msgs__msg__Imu getData()
         {
             imu_msg_.angular_velocity = readGyroscope();
-            imu_msg_.angular_velocity.x -= gyro_cal_.x; 
-            imu_msg_.angular_velocity.y -= gyro_cal_.y; 
-            imu_msg_.angular_velocity.z -= gyro_cal_.z; 
+            imu_msg_.angular_velocity.x -= gyro_cal_.x;
+            imu_msg_.angular_velocity.y -= gyro_cal_.y;
+            imu_msg_.angular_velocity.z -= gyro_cal_.z;
 
             if(imu_msg_.angular_velocity.x > -0.01 && imu_msg_.angular_velocity.x < 0.01 )
-                imu_msg_.angular_velocity.x = 0; 
-         
+                imu_msg_.angular_velocity.x = 0;
+
             if(imu_msg_.angular_velocity.y > -0.01 && imu_msg_.angular_velocity.y < 0.01 )
                 imu_msg_.angular_velocity.y = 0;
 
             if(imu_msg_.angular_velocity.z > -0.01 && imu_msg_.angular_velocity.z < 0.01 )
                 imu_msg_.angular_velocity.z = 0;
-       
+
             imu_msg_.angular_velocity_covariance[0] = gyro_cov_;
             imu_msg_.angular_velocity_covariance[4] = gyro_cov_;
             imu_msg_.angular_velocity_covariance[8] = gyro_cov_;
-            
+
             imu_msg_.linear_acceleration = readAccelerometer();
             imu_msg_.linear_acceleration_covariance[0] = accel_cov_;
             imu_msg_.linear_acceleration_covariance[4] = accel_cov_;

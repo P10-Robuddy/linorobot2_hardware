@@ -22,7 +22,7 @@ Kinematics::Kinematics(base robot_base, int motor_max_rpm, float max_rpm_ratio,
     wheels_y_distance_(wheels_y_distance),
     wheel_circumference_(PI * wheel_diameter),
     total_wheels_(getTotalWheels(robot_base))
-{    
+{
     motor_power_max_voltage = constrain(motor_power_max_voltage, 0, motor_operating_voltage);
     max_rpm_ =  ((motor_power_max_voltage / motor_operating_voltage) * motor_max_rpm) * max_rpm_ratio;
 }
@@ -60,7 +60,7 @@ Kinematics::rpm Kinematics::calculateRPM(float linear_x, float linear_y, float a
         x_rpm *= vel_scaler;
         y_rpm *= vel_scaler;
     }
-    
+
     else if(xtan_sum >= max_rpm_ && linear_y == 0)
     {
         float vel_scaler = max_rpm_ / xtan_sum;
@@ -113,7 +113,7 @@ Kinematics::velocities Kinematics::getVelocities(float rpm1, float rpm2, float r
         rpm3 = 0.0;
         rpm4 = 0.0;
     }
- 
+
     //convert average revolutions per minute to revolutions per second
     average_rps_x = ((float)(rpm1 + rpm2 + rpm3 + rpm4) / total_wheels_) / 60.0; // RPM
     vel.linear_x = average_rps_x * wheel_circumference_; // m/s

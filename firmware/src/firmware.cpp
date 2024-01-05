@@ -81,12 +81,12 @@ PID motor3_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 PID motor4_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 
 Kinematics kinematics(
-    Kinematics::LINO_BASE, 
-    MOTOR_MAX_RPM, 
-    MAX_RPM_RATIO, 
-    MOTOR_OPERATING_VOLTAGE, 
-    MOTOR_POWER_MAX_VOLTAGE, 
-    WHEEL_DIAMETER, 
+    Kinematics::LINO_BASE,
+    MOTOR_MAX_RPM,
+    MAX_RPM_RATIO,
+    MOTOR_OPERATING_VOLTAGE,
+    MOTOR_POWER_MAX_VOLTAGE,
+    WHEEL_DIAMETER,
     LR_WHEELS_DISTANCE
 );
 
@@ -132,7 +132,7 @@ void rampInput()
 void moveBase()
 {
     // brake if there's no command received, or when it's only the first command sent
-    if(((millis() - prev_cmd_time) >= 500)) 
+    if(((millis() - prev_cmd_time) >= 500))
     {
         fullStop();
         digitalWrite(LED_PIN, HIGH);
@@ -141,8 +141,8 @@ void moveBase()
     rampInput();
     // get the required rpm for each motor based on required velocities, and base used
     Kinematics::rpm req_rpm = kinematics.getRPM(
-        twist_msg.linear.x, 
-        0.0, 
+        twist_msg.linear.x,
+        0.0,
         twist_msg.angular.z
     );
     // get the current speed of each motor
@@ -159,9 +159,9 @@ void moveBase()
     motor4_controller.spin(motor4_pid.compute(req_rpm.motor4, current_rpm4));
 
     Kinematics::velocities current_vel = kinematics.getVelocities(
-        current_rpm1, 
-        current_rpm2, 
-        current_rpm3, 
+        current_rpm1,
+        current_rpm2,
+        current_rpm3,
         current_rpm4
     );
 
@@ -169,9 +169,9 @@ void moveBase()
     float vel_dt = (now - prev_odom_update) / 1000.0;
     prev_odom_update = now;
     odometry.update(
-        vel_dt, 
-        current_vel.linear_x, 
-        current_vel.linear_y, 
+        vel_dt,
+        current_vel.linear_x,
+        current_vel.linear_y,
         current_vel.angular_z
     );
 }
@@ -212,7 +212,7 @@ void send_packet(robot_measurement_packet* packet) {
         Serial.write(buffer, SERIAL_BUFFER_LENGTH);
 }
 
-void setup() 
+void setup()
 {
     pinMode(LED_PIN, OUTPUT);
     flashLED(3);

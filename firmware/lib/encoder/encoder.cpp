@@ -6,5 +6,3 @@
 // to facilitate some crafty optimizations!
 
 Encoder_internal_state_t * Encoder::interruptArgs[];
-
-

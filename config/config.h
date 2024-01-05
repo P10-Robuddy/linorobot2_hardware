@@ -36,10 +36,10 @@
     #include "lino_base_config.h"
 #endif
 
-#ifndef ROS_NAMESPACE
-    #define ROS_NAMESPACE ""
+#ifndef NAMESPACE
+    #define NAMESPACE "polybot01"
 #endif
 
 #ifndef ROS_DOMAIN_ID
-    #define ROS_DOMAIN_ID 60
+    #define ROS_DOMAIN_ID 0
 #endif

@@ -30,7 +30,7 @@
 //#include "Adafruit_Sensor.h"
 //#include "utility/imumaths.h"
 
-class GY85IMU: public IMUInterface 
+class GY85IMU: public IMUInterface
 {
     private:
         //constants specific to the sensor
@@ -76,7 +76,7 @@ class GY85IMU: public IMUInterface
             // here you can override readAccelerometer function and use the sensor's driver API
             // to grab the data from accelerometer and return as a Vector3 object
             int16_t ax, ay, az;
-            
+
             accelerometer_.getAcceleration(&ax, &ay, &az);
 
             accel_.x = ax * (double) accel_scale_ * g_to_accel_;
@@ -103,7 +103,7 @@ class GY85IMU: public IMUInterface
 };
 
 
-class MPU6050IMU: public IMUInterface 
+class MPU6050IMU: public IMUInterface
 {
     private:
         const float accel_scale_ = 1 / 16384.0;
@@ -140,7 +140,7 @@ class MPU6050IMU: public IMUInterface
         geometry_msgs__msg__Vector3 readAccelerometer() override
         {
             int16_t ax, ay, az;
-            
+
             accelerometer_.getAcceleration(&ax, &ay, &az);
 
             accel_.x = ax * (double) accel_scale_ * g_to_accel_;
@@ -164,7 +164,7 @@ class MPU6050IMU: public IMUInterface
         }
 };
 
-class MPU9150IMU: public IMUInterface 
+class MPU9150IMU: public IMUInterface
 {
     private:
         const float accel_scale_ = 1 / 16384.0;
@@ -201,7 +201,7 @@ class MPU9150IMU: public IMUInterface
         geometry_msgs__msg__Vector3 readAccelerometer() override
         {
             int16_t ax, ay, az;
-            
+
             accelerometer_.getAcceleration(&ax, &ay, &az);
 
             accel_.x = ax * (double) accel_scale_ * g_to_accel_;
@@ -225,7 +225,7 @@ class MPU9150IMU: public IMUInterface
         }
 };
 
-class MPU9250IMU: public IMUInterface 
+class MPU9250IMU: public IMUInterface
 {
     private:
         const float accel_scale_ = 1 / 16384.0;
@@ -262,7 +262,7 @@ class MPU9250IMU: public IMUInterface
         geometry_msgs__msg__Vector3 readAccelerometer() override
         {
             int16_t ax, ay, az;
-            
+
             accelerometer_.getAcceleration(&ax, &ay, &az);
 
             accel_.x = ax * (double) accel_scale_ * g_to_accel_;
@@ -361,7 +361,7 @@ class BNO055IMU: public IMUInterface
 
 };
 
-class FakeIMU: public IMUInterface 
+class FakeIMU: public IMUInterface
 {
     private:
         geometry_msgs__msg__Vector3 accel_;

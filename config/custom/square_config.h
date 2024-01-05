@@ -15,47 +15,47 @@
 #ifndef SQUARE_CONFIG_H
 #define SQUARE_CONFIG_H
 
-#define LED_PIN 13 
+#define LED_PIN 13
 
-#define LINO_BASE DIFFERENTIAL_DRIVE 
+#define LINO_BASE DIFFERENTIAL_DRIVE
 
-#define USE_GENERIC_2_IN_MOTOR_DRIVER 
+#define USE_GENERIC_2_IN_MOTOR_DRIVER
 #define USE_GY85_IMU
 
-#define K_P 20.                           
-#define K_I 0.8                             
-#define K_D 5.                             
+#define K_P 20.
+#define K_I 0.8
+#define K_D 5.
 
 #define MOTOR_MAX_RPM 100
 #define MAX_RPM_RATIO 0.8
 #define MOTOR_OPERATING_VOLTAGE 12
 #define MOTOR_POWER_MAX_VOLTAGE 12
-#define MOTOR_POWER_MEASURED_VOLTAGE 11.67                         
+#define MOTOR_POWER_MEASURED_VOLTAGE 11.67
 #define COUNTS_PER_REV1 2513
 #define COUNTS_PER_REV2 2580
 #define COUNTS_PER_REV3 2421
 #define COUNTS_PER_REV4 2501
-#define WHEEL_DIAMETER 0.09               
-#define LR_WHEELS_DISTANCE 0.24            
-#define PWM_BITS 10                        
+#define WHEEL_DIAMETER 0.09
+#define LR_WHEELS_DISTANCE 0.24
+#define PWM_BITS 10
 #define PWM_FREQUENCY 20000
 
 /// ENCODER PINS
 #define MOTOR1_ENCODER_A 14
-#define MOTOR1_ENCODER_B 15 
-#define MOTOR1_ENCODER_INV false 
+#define MOTOR1_ENCODER_B 15
+#define MOTOR1_ENCODER_INV false
 
 #define MOTOR2_ENCODER_A 11
-#define MOTOR2_ENCODER_B 12 
-#define MOTOR2_ENCODER_INV false 
+#define MOTOR2_ENCODER_B 12
+#define MOTOR2_ENCODER_INV false
 
 #define MOTOR3_ENCODER_A 17
-#define MOTOR3_ENCODER_B 16 
-#define MOTOR3_ENCODER_INV true 
+#define MOTOR3_ENCODER_B 16
+#define MOTOR3_ENCODER_INV true
 
 #define MOTOR4_ENCODER_A 9
 #define MOTOR4_ENCODER_B 10
-#define MOTOR4_ENCODER_INV false 
+#define MOTOR4_ENCODER_INV false
 
 // Motor Pins
 #define MOTOR1_PWM 1

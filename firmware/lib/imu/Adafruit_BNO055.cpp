@@ -122,7 +122,7 @@ bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode) {
   write8(BNO055_UNIT_SEL_ADDR, unitsel);
   */
   uint8_t unitsel = (uint8_t) ((1 << 1)
-                  | (0 << 0));		
+                  | (0 << 0));
 
   write8(BNO055_UNIT_SEL_ADDR, unitsel);
 
