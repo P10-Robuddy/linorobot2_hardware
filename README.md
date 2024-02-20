@@ -11,7 +11,7 @@ It is assumed that you already have ROS2 and linorobot2 package installed. If yo
 ### 2. Download linorobot2_hardware
 
     cd $HOME
-    git clone https://github.com/linorobot/linorobot2_hardware
+    git clone https://github.com/p9-robuddy/linorobot2_hardware
 
 ### 3. Install dependencies
 
@@ -43,9 +43,9 @@ and copy the file to /etc/udev/rules.d :
 
 ### 6. Namespace
 
-You should set a namespace in _config.h_. Here it is set to polybot1.
+You should set a namespace in _config.h_. Here it is set to polybot01.
 
-    #define ROS_NAMESPACE "polybot1"
+    #define ROS_NAMESPACE "polybot01"
 
 ## Calibration
 
